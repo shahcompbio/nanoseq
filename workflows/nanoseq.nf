@@ -211,12 +211,12 @@ workflow NANOSEQ {
      * SUBWORKFLOW: Read in samplesheet, validate and stage input files
      * or first merge fastq inputs
      */
-     if (params.merge_fastq){
-         // do normal thing and be boring
+     if (params.merge_fastqs){
+        // merge fastqs and live life on the edge
         FASTER_CAT (ch_input, ch_input_path)
                   .set { ch_sample }
      }else{
-       // merge fastqs and live life on the edge
+      // do normal thing and be boring
       INPUT_CHECK ( ch_input, ch_input_path )
           .set { ch_sample }
      }
