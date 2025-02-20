@@ -15,10 +15,10 @@ workflow FASTER_CAT {
     /*
      * concatenate fastq files
      */
-    CAT_FASTQS ( samplesheet, input_path )
-        .out
-        .fastq
-        .set { ch_cat_fastqs }
+    CAT_FASTQS(samplesheet, input_path)
+
+    CAT_FASTQS.out.fastq
+        .set { ch_cat_fastqs } // Save the concatenated fastq files
 
     CAT_FASTQS.out.csv
         .set { ch_cat_samplesheet }
