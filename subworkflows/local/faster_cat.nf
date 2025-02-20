@@ -25,15 +25,15 @@ workflow FASTER_CAT {
     /*
      * Check samplesheet is valid
      */
-    SAMPLESHEET_CHECK(csv_path, input_path)
-        .csv
+    ( SAMPLESHEET_CHECK(csv_path, input_path).csv
         .splitCsv(header: true, sep: ',')
         .map { row ->
             def sample_info = get_sample_info(row, params.genomes)
-            return [ sample_info[0], sample_info[2], sample_info[3], sample_info[4],
-                     sample_info[5], sample_info[6], sample_info[1], sample_info[7] ]
+            [ sample_info[0], sample_info[2], sample_info[3], sample_info[4],
+              sample_info[5], sample_info[6], sample_info[1], sample_info[7] ]
         }
-        .set { ch_sample }
+    ).set { ch_sample }
+
 
     emit:
     ch_sample // [ sample, barcode, fasta, gtf, is_transcripts, annotation_str ]
