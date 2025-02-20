@@ -15,11 +15,17 @@ workflow FASTER_CAT {
     /*
      * concatenate fastq files
      */
-     ch_cat_fastqs = CAT_FASTQS ( samplesheet, input_path )
+    CAT_FASTQS ( samplesheet, input_path )
+        .out
+        .fastq
+        .set { ch_cat_fastqs }
+
+    CAT_FASTQS.out.csv
+        .set { ch_cat_samplesheet }
     /*
      * Check samplesheet is valid
      */
-    SAMPLESHEET_CHECK ( ch_cat_fastqs, input_path )
+    SAMPLESHEET_CHECK ( ch_cat_samplesheet, input_path )
         .csv
         .splitCsv ( header:true, sep:',' )
         .map { get_sample_info(it, params.genomes) }
@@ -28,6 +34,7 @@ workflow FASTER_CAT {
 
     emit:
     ch_sample // [ sample, barcode, fasta, gtf, is_transcripts, annotation_str ]
+    ch_cat_fastqs // Save the concatenated fastq files
 }
 
 // Function to resolve fasta and gtf file if using iGenomes
