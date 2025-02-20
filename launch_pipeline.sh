@@ -18,7 +18,7 @@ module load singularity/3.7.1
 module load java/20.0.1
 ## example samplesheet
 ## technical replicates get merged ...
-samplesheet=${HOME}/nanoseq/resources/test_samplesheet.csv
+samplesheet=${HOME}/nanoseq/resources/test_merged_samplesheet.csv
 ## specify path to out directory
 outdir=/data1/shahs3/users/preskaa/SarcAtlasMetadata/data/250220_nanoseq_merge_test
 
@@ -34,7 +34,8 @@ nextflow run shahcompbio/nanoseq -r fastercat \
   --outdir ${outdir} \
   -work-dir ${outdir}/work \
   -params-file nf-params.json \
-  --skip_fusion_analysis
+  --skip_fusion_analysis \
+  --merge_fastqs
 
 
 #nextflow run apsteinberg/nanoseq -resume 6c03bf60-99ea-41cd-a949-c30986899f14
