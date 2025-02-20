@@ -169,7 +169,7 @@ include { CUSTOM_DUMPSOFTWAREVERSIONS } from '../modules/nf-core/modules/custom/
 // Info required for completion email and summary
 def multiqc_report      = []
 
-workflow NANOSEQ{
+workflow NANOSEQ {
 
     // Pre-download test-dataset to get files for '--input_path' parameter
     // Nextflow is unable to recursively download directories via HTTPS
@@ -214,6 +214,7 @@ workflow NANOSEQ{
      if (params.merge_fastq){
          // do normal thing and be boring
         FASTER_CAT (ch_input, ch_input_path)
+                  .set { ch_sample }
      }else{
        // merge fastqs and live life on the edge
       INPUT_CHECK ( ch_input, ch_input_path )
