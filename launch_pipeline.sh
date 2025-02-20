@@ -34,9 +34,7 @@ nextflow run apsteinberg/nanoseq \
   --outdir ${outdir} \
   -work-dir ${outdir}/work \
   -params-file nf-params.json \
-  --skip_fusion_analysis \
-  --run_chopper \
-  --chopper_fasta=${mouse_refgenome} \
+  --skip_fusion_analysis
 
 
 #nextflow run apsteinberg/nanoseq -resume 6c03bf60-99ea-41cd-a949-c30986899f14

@@ -175,6 +175,11 @@
                     "type": "string",
                     "description": "mouse fasta file to be filtered against using chopper (can also use to filter other contaminants)",
                     "fa_icon": "far fa-file-code"
+                },
+                "merge_fastqs": {
+                    "type": "boolean",
+                    "description": "concatenate input fastqs from IGO for ONT-NANOSEQ app",
+                    "fa_icon": "fas fa-fast-forward"
                 }
             }
         },

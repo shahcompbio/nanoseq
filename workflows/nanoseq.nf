@@ -131,7 +131,7 @@ include { CHOPPER } from '../modules/local/chopper'
 /*
  * SUBWORKFLOW: Consisting of a mix of local and nf-core/modules
  */
-
+include { FASTER_CAT                      } from '../subworkflows/local/faster_cat'
 include { INPUT_CHECK                      } from '../subworkflows/local/input_check'
 include { PREPARE_GENOME                   } from '../subworkflows/local/prepare_genome'
 include { QCBASECALL_PYCOQC_NANOPLOT       } from '../subworkflows/local/qcbasecall_pycoqc_nanoplot'
@@ -209,9 +209,17 @@ workflow NANOSEQ{
 
     /*
      * SUBWORKFLOW: Read in samplesheet, validate and stage input files
+     * or first merge fastq inputs
      */
-    INPUT_CHECK ( ch_input, ch_input_path )
-        .set { ch_sample }
+     if !(params.merge_fastq){
+         // do normal thing and be boring
+        FASTER_CAT (ch_input, ch_input_path)
+     }else{
+       // merge fastqs and live life on the edge
+      INPUT_CHECK ( ch_input, ch_input_path )
+          .set { ch_sample }
+     }
+
 
     if (!params.skip_basecalling) {
         ch_sample
