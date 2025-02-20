@@ -21,12 +21,11 @@ workflow FASTER_CAT {
         .set { ch_cat_fastqs } // Save the concatenated fastq files
 
     // Get the path of the CSV file from the output of CAT_FASTQS
-    ch_csv_path = CAT_FASTQS.out.csv
-        .first()  // Get the first file from the channel (as a path)
+    csv_ch = CAT_FASTQS.out.csv
     /*
      * Check samplesheet is valid
      */
-    SAMPLESHEET_CHECK ( ch_csv_path, input_path )
+    SAMPLESHEET_CHECK ( csv_ch, input_path )
         .csv
         .splitCsv ( header:true, sep:',' )
         .map { get_sample_info(it, params.genomes) }
