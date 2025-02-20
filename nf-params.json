@@ -1,6 +1,6 @@
 {
     "email": "preskaa@mskcc.org",
-    "protocol": "cDNA",
+    "protocol": "DNA",
     "skip_demultiplexing": true,
     "skip_quantification": true,
     "skip_differential_analysis": true,
