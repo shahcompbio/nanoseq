@@ -30,7 +30,7 @@ workflow FASTER_CAT {
         .splitCsv ( header:true, sep:',' )
         .map { get_sample_info(it, params.genomes) }
         .map { it -> [ it[0], it[2], it[3], it[4], it[5], it[6], it[1] , it[7] ] }
-        .set { ch_sample }
+        | set { ch_sample }  // Use `| set` instead of `.set`
 
     emit:
     ch_sample // [ sample, barcode, fasta, gtf, is_transcripts, annotation_str ]
