@@ -213,9 +213,7 @@ workflow NANOSEQ {
      */
      if (params.merge_fastqs){
         // merge fastqs and live life on the edge
-        ch_merged_input = FASTER_CAT (ch_input).csv
-        INPUT_CHECK ( ch_merged_input, ch_input_path )
-              .set { ch_sample }
+        FASTER_CAT (ch_input).set {ch_sample}
      }else{
       // do normal thing and be boring
       INPUT_CHECK ( ch_input, ch_input_path )
