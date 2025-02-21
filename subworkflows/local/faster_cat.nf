@@ -30,7 +30,7 @@ workflow FASTER_CAT {
 
     emit:
     ch_sample // [ sample, barcode, fasta, gtf, is_transcripts, annotation_str ]
-    ch_cat_fastqs
+    // ch_cat_fastqs
 }
 
 // Function to resolve fasta and gtf file if using iGenomes
