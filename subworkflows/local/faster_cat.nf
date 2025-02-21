@@ -16,24 +16,16 @@ workflow FASTER_CAT {
      * concatenate fastq files
      */
     CAT_FASTQS(samplesheet, input_path)
-
-    CAT_FASTQS.out.fastq
-        .set { ch_cat_fastqs } // Save the concatenated fastq files
-
-    // Extract the CSV file path (as a Path, not a channel)
-    def csv_path = CAT_FASTQS.out.csv.first()
     /*
      * Check samplesheet is valid
      */
-    ( SAMPLESHEET_CHECK(csv_path, input_path).csv
-        .splitCsv(header: true, sep: ',')
-        .map { row ->
-            def sample_info = get_sample_info(row, params.genomes)
-            [ sample_info[0], sample_info[2], sample_info[3], sample_info[4],
-              sample_info[5], sample_info[6], sample_info[1], sample_info[7] ]
-        }
-    ).set { ch_sample }
-
+    SAMPLESHEET_CHECK ( CAT_FASTQS.out.csv, input_path )
+        .csv
+        .splitCsv ( header:true, sep:',' )
+        .map { get_sample_info(it, params.genomes) }
+        .map { it -> [ it[0], it[2], it[3], it[4], it[5], it[6], it[1] , it[7] ] }
+        .set { ch_sample }
+    ch_cat_fastqs = CAT_FASTQS.out.fastq
 
     emit:
     ch_sample // [ sample, barcode, fasta, gtf, is_transcripts, annotation_str ]
