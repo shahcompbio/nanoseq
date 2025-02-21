@@ -15,7 +15,7 @@ workflow FASTER_CAT {
     /*
      * concatenate fastq files
      */
-    CAT_FASTQS(samplesheet, input_path)
+    CAT_FASTQS(samplesheet)
     /*
      * Check samplesheet is valid
      */

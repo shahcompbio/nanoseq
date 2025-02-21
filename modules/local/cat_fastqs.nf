@@ -9,7 +9,6 @@ process CAT_FASTQS {
 
     input:
     path samplesheet
-    val input_path
 
     output:
     tuple val(meta), path("*.fastq.gz"), emit: fastq
