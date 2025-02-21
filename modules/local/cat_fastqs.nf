@@ -17,7 +17,7 @@ process CAT_FASTQS {
 
     script:
     """
-    python merge_fastqs.py \\
+    merge_fastqs.py \\
         $samplesheet \\
         merged.fastq.gz \\
         merged_samplesheet.csv
