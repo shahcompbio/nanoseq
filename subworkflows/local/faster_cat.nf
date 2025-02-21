@@ -9,6 +9,7 @@ include { CAT_FASTQS } from '../../modules/local/cat_fastqs'
 workflow FASTER_CAT {
     take:
     samplesheet // file: /path/to/samplesheet.csv
+    input_path
 
     main:
     /*
