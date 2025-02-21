@@ -2,9 +2,7 @@ process CAT_FASTQS {
     tag "$cat_fastqs"
     label 'process_low'
 
-    conda (params.enable_conda ? "conda-forge::python=3.8.3" : null)
-    container 'quay.io/preskaa/biopython:v250221'
-    beforeScript 'chmod g+w .'
+    conda 'pandas'
     input:
     path samplesheet
 
