@@ -25,11 +25,12 @@ outdir=/data1/shahs3/users/preskaa/SarcAtlasMetadata/data/250220_nanoseq_merge_t
 ## reference genome for chopper (if sample is PDX)
 mouse_refgenome=/data1/shahs3/isabl_data_lake/assemblies/WGS-MM10/mouse/mm10_build38_mouse.fasta
 
+export NXF_SINGULARITY_OPTS="--bind /data1/shahs3:/data1/shahs3 --bind /home/preskaa:/home/preskaa"
 ## last two flags trigger chopper to differentiate mouse from human reads for PDX samples
 ## these flags should not be used for human samples
 nextflow run shahcompbio/nanoseq -r fastercat \
   -c ${PWD}/conf/iris.config \
-  -profile singularity,slurm \
+  -profile slurm \
   --input ${samplesheet} \
   --outdir ${outdir} \
   -work-dir ${outdir}/work \
