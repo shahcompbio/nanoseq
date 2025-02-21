@@ -21,11 +21,10 @@ workflow FASTER_CAT {
         .map { it -> [ it[0], it[2], it[3], it[4], it[5], it[6], it[1] , it[7] ] }
         .set { ch_sample }
     // emit merged_fastqs
-    ch_merged_fastqs = CAT_FASTQS.out.fastq
+    // ch_merged_fastqs = CAT_FASTQS.out.fastq
 
     emit:
     ch_sample
-    ch_merged_fastqs
 }
 
 // Function to resolve fasta and gtf file if using iGenomes
