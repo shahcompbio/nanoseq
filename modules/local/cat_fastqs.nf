@@ -1,5 +1,5 @@
 process CAT_FASTQS {
-    tag "$meta.id"
+    tag "$cat_fastqs"
     label 'process_low'
 
     conda (params.enable_conda ? "conda-forge::python=3.8.3" : null)
@@ -8,10 +8,10 @@ process CAT_FASTQS {
         'quay.io/biocontainers/python:3.8.3' }"
 
     input:
-    tuple val(meta), path(samplesheet)
+    path samplesheet
 
     output:
-    tuple val(meta), path("*.fastq.gz"), emit: fastq
+    path"*.fastq.gz"   , emit: fastq
     path '*.csv'       , emit: csv
     path "versions.yml", emit: versions
 
@@ -20,12 +20,13 @@ process CAT_FASTQS {
 
     script:
     def args = task.ext.args ?: ''
-    def prefix = task.ext.prefix ?: "${meta.id}"
+    def outdir = ${params.outdir}/merged_fastq
     """
     cat
+    mkdir -p ${outdir}
     merge_fastqs.py \\
         $samplesheet \\
-        ${prefix}.fastq.gz \\
+        $outdir/test_merged.fastq.gz \\
         merged_samplesheet.csv
 
     cat <<-END_VERSIONS > versions.yml
