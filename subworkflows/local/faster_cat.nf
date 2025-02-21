@@ -15,17 +15,18 @@ workflow FASTER_CAT {
     /*
      * concatenate fastq files
      */
-    CAT_FASTQS(samplesheet)
+    ch_samplesheet = CAT_FASTQS(samplesheet).csv
     /*
      * Check samplesheet is valid
      */
-    SAMPLESHEET_CHECK ( CAT_FASTQS.out.csv, input_path )
+    SAMPLESHEET_CHECK ( ch_samplesheet, input_path )
         .csv
         .splitCsv ( header:true, sep:',' )
         .map { get_sample_info(it, params.genomes) }
         .map { it -> [ it[0], it[2], it[3], it[4], it[5], it[6], it[1] , it[7] ] }
         .set { ch_sample }
-    ch_cat_fastqs = CAT_FASTQS.out.fastq
+
+    ch_cat_fastqs = CAT_FASTQS(samplesheet).fastq
 
     emit:
     ch_sample // [ sample, barcode, fasta, gtf, is_transcripts, annotation_str ]
