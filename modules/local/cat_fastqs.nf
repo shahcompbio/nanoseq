@@ -8,7 +8,7 @@ process CAT_FASTQS {
         'quay.io/biocontainers/python:3.8.3' }"
 
     input:
-    path samplesheet
+    tuple val(meta), path(samplesheet)
 
     output:
     tuple val(meta), path("*.fastq.gz"), emit: fastq
