@@ -1,6 +1,6 @@
+#!/usr/bin/env python
 import os
 import sys
-import errno
 import argparse
 import pandas as pd
 import shutil
