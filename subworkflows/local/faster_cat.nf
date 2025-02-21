@@ -14,14 +14,14 @@ workflow FASTER_CAT {
     /*
      * concatenate fastq files
      */
-    CAT_FASTQS(samplesheet)
+    ch_samplesheet = CAT_FASTQS(samplesheet).csv
+
+    SAMPLESHEET_CHECK(ch_samplesheet)
         .csv
         .splitCsv ( header:true, sep:',' )
         .map { get_sample_info(it, params.genomes) }
         .map { it -> [ it[0], it[2], it[3], it[4], it[5], it[6], it[1] , it[7] ] }
         .set { ch_sample }
-    // emit merged_fastqs
-    // ch_merged_fastqs = CAT_FASTQS.out.fastq
 
     emit:
     ch_sample
