@@ -15,7 +15,7 @@ workflow FASTER_CAT {
     /*
      * concatenate fastq files
      */
-    ch_samplesheet = CAT_FASTQS(samplesheet).csv
+    ch_samplesheet = CAT_FASTQS(samplesheet).merged_csv
     /*
      * Check samplesheet is valid
      */

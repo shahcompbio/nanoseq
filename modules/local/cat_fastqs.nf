@@ -12,7 +12,7 @@ process CAT_FASTQS {
 
     output:
     tuple val(meta), path("*.fastq.gz"), emit: fastq
-    path '*.csv'       , emit: csv
+    path '*.csv'       , emit: merged_csv
     path "versions.yml", emit: versions
 
     when:
