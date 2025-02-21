@@ -17,7 +17,7 @@ workflow FASTER_CAT {
      */
     ch_samplesheet = CAT_FASTQS(samplesheet).csv
 
-    SAMPLESHEET_CHECK(ch_samplesheet)
+    SAMPLESHEET_CHECK(ch_samplesheet, input_path)
         .csv
         .splitCsv ( header:true, sep:',' )
         .map { get_sample_info(it, params.genomes) }
