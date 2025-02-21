@@ -15,20 +15,13 @@ process CAT_FASTQS {
     path '*.csv'       , emit: csv
     path "versions.yml", emit: versions
 
-    when:
-    task.ext.when == null || task.ext.when
-
     script:
-    def args = task.ext.args ?: ''
-    def outdir = ${params.outdir}/merged_fastq
     """
     cat
-    mkdir -p ${outdir}
     merge_fastqs.py \\
         $samplesheet \\
-        $outdir/test_merged.fastq.gz \\
+        merged.fastq.gz \\
         merged_samplesheet.csv
-
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
         python: \$(python --version | sed 's/Python //g')
