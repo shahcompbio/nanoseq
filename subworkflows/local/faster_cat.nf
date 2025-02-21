@@ -15,7 +15,8 @@ workflow FASTER_CAT {
      * concatenate fastq files
      */
     CAT_FASTQS(samplesheet)
-    // ch_cat_fastqs = CAT_FASTQS.out.fastq
+    ch_sample = CAT_FASTQS.out.csv
+    ch_cat_fastqs = CAT_FASTQS.out.fastq
 
     emit:
     ch_sample
