@@ -26,7 +26,7 @@ workflow FASTER_CAT {
         .map { it -> [ it[0], it[2], it[3], it[4], it[5], it[6], it[1] , it[7] ] }
         .set { ch_sample }
 
-    ch_cat_fastqs = CAT_FASTQS(samplesheet).fastq
+    ch_cat_fastqs = CAT_FASTQS.out.fastq
 
     emit:
     ch_sample // [ sample, barcode, fasta, gtf, is_transcripts, annotation_str ]
