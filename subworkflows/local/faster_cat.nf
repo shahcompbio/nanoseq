@@ -15,11 +15,11 @@ workflow FASTER_CAT {
     /*
      * concatenate fastq files
      */
-    ch_samplesheet = CAT_FASTQS(samplesheet).merged_csv
+    CAT_FASTQS(samplesheet)
     /*
      * Check samplesheet is valid
      */
-    SAMPLESHEET_CHECK ( ch_samplesheet, input_path )
+    SAMPLESHEET_CHECK ( samplesheet, input_path )
         .csv
         .splitCsv ( header:true, sep:',' )
         .map { get_sample_info(it, params.genomes) }
