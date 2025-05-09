@@ -127,6 +127,7 @@ include { QCAT                  } from '../modules/local/qcat'
 include { BAM_RENAME            } from '../modules/local/bam_rename'
 include { BAMBU                 } from '../modules/local/bambu'
 include { MULTIQC               } from '../modules/local/multiqc'
+include { SAMTOOLS_VIEW_BAM     } from '../modules/local/samtools_view_bam'
 include { CHOPPER } from '../modules/local/chopper'
 /*
  * SUBWORKFLOW: Consisting of a mix of local and nf-core/modules
@@ -420,10 +421,17 @@ workflow NANOSEQ{
             ch_software_versions = ch_software_versions.mix(ALIGN_GRAPHMAP2.out.graphmap2_version.first().ifEmpty(null))
         }
 
+        SAMTOOLS_VIEW_BAM ( ch_align_sam.map { it -> [ it[0], it[3] ] } )
+        SAMTOOLS_VIEW_BAM.out.bam
+            .join( ch_align_sam )
+            .map { it -> [ it[0], it[2], it[3], it[1] ]}
+            .set { ch_align_bam }
+        ch_software_versions = ch_software_versions.mix(SAMTOOLS_VIEW_BAM.out.versions.first().ifEmpty(null))
+
         /*
         * SUBWORKFLOW: View, then  sort, and index bam files
         */
-        BAM_SORT_INDEX_SAMTOOLS ( ch_align_sam, params.call_variants, ch_fasta )
+        BAM_SORT_INDEX_SAMTOOLS ( ch_align_bam, params.call_variants, ch_fasta )
         ch_view_sortbam = BAM_SORT_INDEX_SAMTOOLS.out.sortbam
         ch_software_versions = ch_software_versions.mix(BAM_SORT_INDEX_SAMTOOLS.out.samtools_versions.first().ifEmpty(null))
         ch_samtools_multiqc  = BAM_SORT_INDEX_SAMTOOLS.out.sortbam_stats_multiqc.ifEmpty([])
