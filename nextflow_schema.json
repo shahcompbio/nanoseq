@@ -206,6 +206,11 @@
                     "type": "boolean",
                     "description": "Skip alignment and downstream processes.",
                     "fa_icon": "fas fa-fast-forward"
+                },
+                "realign": {
+                    "type": "boolean",
+                    "description": "Realign from fastq extracted from bam.",
+                    "fa_icon": "fas fa-fast-forward"
                 }
             }
         },

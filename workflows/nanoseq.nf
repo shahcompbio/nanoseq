@@ -158,6 +158,35 @@ include { RNA_FUSIONS_JAFFAL               } from '../subworkflows/local/rna_fus
 include { NANOLYSE                    } from '../modules/nf-core/modules/nanolyse/main'
 include { CUSTOM_DUMPSOFTWAREVERSIONS } from '../modules/nf-core/modules/custom/dumpsoftwareversions/main'
 
+
+process SAMTOOLS_VIEW_FASTQ {
+    tag "$meta.id"
+    label 'process_medium'
+
+    conda     (params.enable_conda ? "bioconda::samtools=1.10" : null)
+    container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
+        'https://depot.galaxyproject.org/singularity/samtools:1.15.1--h1170115_0' :
+        'quay.io/biocontainers/samtools:1.15.1--h1170115_0' }"
+
+    input:
+    tuple val(meta), path(bam)
+
+    output:
+    tuple val(meta), path("*.fastq.gz"), emit: fastq
+    path "versions.yml", emit: versions
+
+    script:
+    """
+    samtools fastq $bam | gzip > ${meta.id}.fastq.gz
+
+    cat <<-END_VERSIONS > versions.yml
+    "${task.process}":
+        samtools: \$(echo \$(samtools --version 2>&1) | sed 's/^.*samtools //; s/Using.*\$//')
+    END_VERSIONS
+    """
+}
+
+
 /*
  * SUBWORKFLOW: Consisting entirely of nf-core/modules
  */
@@ -265,9 +294,23 @@ workflow NANOSEQ{
             ch_software_versions = ch_software_versions.mix(QCAT.out.versions.ifEmpty(null))
         } else {
             if (!params.skip_alignment) {
-                ch_sample
-                    .map { it -> if (it[6].toString().endsWith('.gz')) [ it[0], it[6], it[2], it[1], it[4], it[5] ] }
-                    .set { ch_fastq }
+                if (!params.realign) {
+                    ch_sample
+                        .map { it -> if (it[6].toString().endsWith('.gz')) [ it[0], it[6], it[2], it[1], it[4], it[5] ] }
+                        .set { ch_fastq }
+                } else {
+
+                    ch_sample
+                        .map { it -> if (it[6].toString().endsWith('.bam')) [ it[0], it[6] ] }
+                        .set { ch_sample_bam }
+                    SAMTOOLS_VIEW_FASTQ ( ch_sample_bam )
+                    ch_fastq = Channel.empty()
+                    SAMTOOLS_VIEW_FASTQ.out.fastq
+                        .join(ch_sample)
+                        .map { it -> [ it[0], it[1], it[3], it[2], it[5], it[6] ] }
+                        .set { ch_fastq }
+                    ch_software_versions = ch_software_versions.mix(SAMTOOLS_VIEW_FASTQ.out.versions.ifEmpty(null))
+                }
             } else {
                 ch_fastq = Channel.empty()
             }
