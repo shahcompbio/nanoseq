@@ -21,7 +21,7 @@ workflow INPUT_CHECK {
         .set { ch_sample }
 
     emit:
-    ch_sample // [ sample, barcode, fasta, gtf, is_transcripts, annotation_str ]
+    ch_sample // [ sample, barcode, fasta, gtf, is_transcripts, annotation_str, input_file, nanopolish_fast5 ]
 }
 
 // Function to resolve fasta and gtf file if using iGenomes

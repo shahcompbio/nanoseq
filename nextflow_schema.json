@@ -211,6 +211,11 @@
                     "type": "boolean",
                     "description": "Realign from fastq extracted from bam.",
                     "fa_icon": "fas fa-fast-forward"
+                },
+                "transfer_read_tags": {
+                    "type": "boolean",
+                    "description": "Transfer methylation read tags from input bam to realigned bam.",
+                    "fa_icon": "fas fa-fast-forward"
                 }
             }
         },

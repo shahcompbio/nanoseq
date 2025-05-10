@@ -128,7 +128,9 @@ include { BAM_RENAME            } from '../modules/local/bam_rename'
 include { BAMBU                 } from '../modules/local/bambu'
 include { MULTIQC               } from '../modules/local/multiqc'
 include { SAMTOOLS_VIEW_BAM     } from '../modules/local/samtools_view_bam'
+include { SAMTOOLS_VIEW_FASTQ   } from '../modules/local/samtools_view_fastq'
 include { CHOPPER } from '../modules/local/chopper'
+
 /*
  * SUBWORKFLOW: Consisting of a mix of local and nf-core/modules
  */
@@ -148,6 +150,7 @@ include { QUANTIFY_STRINGTIE_FEATURECOUNTS } from '../subworkflows/local/quantif
 include { DIFFERENTIAL_DESEQ2_DEXSEQ       } from '../subworkflows/local/differential_deseq2_dexseq'
 include { RNA_MODIFICATION_XPORE_M6ANET    } from '../subworkflows/local/rna_modifications_xpore_m6anet'
 include { RNA_FUSIONS_JAFFAL               } from '../subworkflows/local/rna_fusions_jaffal'
+include { TRANSFER_READ_TAGS               } from '../subworkflows/local/transfer_read_tags'
 
 ////////////////////////////////////////////////////
 /* --    IMPORT NF-CORE MODULES/SUBWORKFLOWS   -- */
@@ -158,138 +161,6 @@ include { RNA_FUSIONS_JAFFAL               } from '../subworkflows/local/rna_fus
  */
 include { NANOLYSE                    } from '../modules/nf-core/modules/nanolyse/main'
 include { CUSTOM_DUMPSOFTWAREVERSIONS } from '../modules/nf-core/modules/custom/dumpsoftwareversions/main'
-
-
-process SAMTOOLS_VIEW_FASTQ {
-    tag "$meta.id"
-    label 'process_medium'
-
-    conda     (params.enable_conda ? "bioconda::samtools=1.10" : null)
-    container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/samtools:1.15.1--h1170115_0' :
-        'quay.io/biocontainers/samtools:1.15.1--h1170115_0' }"
-
-    input:
-    tuple val(meta), path(bam)
-
-    output:
-    tuple val(meta), path("*.fastq.gz"), emit: fastq
-    path "versions.yml", emit: versions
-
-    script:
-    """
-    samtools fastq $bam | gzip > ${meta.id}.fastq.gz
-
-    cat <<-END_VERSIONS > versions.yml
-    "${task.process}":
-        samtools: \$(echo \$(samtools --version 2>&1) | sed 's/^.*samtools //; s/Using.*\$//')
-    END_VERSIONS
-    """
-}
-
-
-process SAMTOOLS_LEXSORT {
-    tag "$meta.id"
-    label 'process_low'
-
-    container "quay.io/biocontainers/samtools:1.21--h96c455f_1"
-
-    input:
-    tuple val(meta), path(bam)
-
-    output:
-    tuple val(meta), path("*lexsorted.bam"), emit: bam
-    path  "versions.yml", emit: versions
-
-    script:
-    """
-    samtools sort -N -@ $task.cpus -o ${meta.id}.lexsorted.bam -T $meta.id $bam
-
-    cat <<-END_VERSIONS > versions.yml
-    "${task.process}":
-        samtools: \$(echo \$(samtools --version 2>&1) | sed 's/^.*samtools //; s/Using.*\$//')
-    END_VERSIONS
-    """
-}
-
-
-// TODO: naming of bam files
-
-process SAMTOOLS_LEXSORT2 {
-    tag "$meta.id"
-    label 'process_low'
-
-    container "quay.io/biocontainers/samtools:1.21--h96c455f_1"
-
-    input:
-    tuple val(meta), path(bam)
-
-    output:
-    tuple val(meta), path("*lexsorted2.bam"), emit: bam
-    path  "versions.yml", emit: versions
-
-    script:
-    """
-    samtools sort -N -@ $task.cpus -o ${meta.id}.lexsorted2.bam -T $meta.id $bam
-
-    cat <<-END_VERSIONS > versions.yml
-    "${task.process}":
-        samtools: \$(echo \$(samtools --version 2>&1) | sed 's/^.*samtools //; s/Using.*\$//')
-    END_VERSIONS
-    """
-}
-
-
-process GATK_TRANSFER_READ_TAGS {
-    tag "$meta.id"
-    label 'process_low'
-
-    container "quay.io/biocontainers/gatk4:4.6.2.0--py310hdfd78af_0"
-
-    input:
-    tuple val(meta), path(aligned_bam), path(tagged_bam)
-
-    output:
-    tuple val(meta), path("*tagged_aligned.bam"), emit: bam
-    path  "versions.yml", emit: versions
-
-    script:
-    """
-    mkdir -p tmp
-    gatk --java-options "-Xmx30g -Xms4g" TransferReadTags \\
-        --input $aligned_bam \\
-        --output ${meta.id}.tagged_aligned.bam \\
-        --unmapped-sam $tagged_bam \\
-        --tmp-dir tmp \\
-        --read-tags MM
-
-    # TODO
-    touch versions.yml
-    # cat <<-END_VERSIONS > versions.yml
-    # "${task.process}":
-    #     gatk: \$(echo \$(gatk4 --version))
-    # END_VERSIONS
-    """
-}
-
-
-workflow TRANSFER_READ_TAGS{
-    take:
-    aligned_bams // channel: [ val(meta), path(aligned_bam) ]
-    tagged_bams // channel: [ val(meta), path(tagged_bam) ]
-
-    main:
-    sorted_aligned_bams = SAMTOOLS_LEXSORT(aligned_bams).bam
-    sorted_tagged_bams = SAMTOOLS_LEXSORT2(tagged_bams).bam
-
-    bams_ch = sorted_aligned_bams.join(sorted_tagged_bams, by: [0])
-
-    tagged_bam = GATK_TRANSFER_READ_TAGS(bams_ch).bam
-
-    emit:
-    tagged_bam
-}
-
 
 /*
  * SUBWORKFLOW: Consisting entirely of nf-core/modules
@@ -531,11 +402,14 @@ workflow NANOSEQ{
             .set { ch_align_bam }
         ch_software_versions = ch_software_versions.mix(SAMTOOLS_VIEW_BAM.out.versions.first().ifEmpty(null))
 
-        TRANSFER_READ_TAGS( ch_align_bam.map { it -> [ it[0], it[3] ] }, ch_sample_bam )
-        TRANSFER_READ_TAGS.out.tagged_bam
-            .join( ch_align_bam )
-            .map { it -> [ it[0], it[2], it[3], it[1] ]}
-            .set { ch_align_bam }
+        if (params.transfer_read_tags) {
+            TRANSFER_READ_TAGS( ch_align_bam.map { it -> [ it[0], it[3] ] }, ch_sample_bam )
+            TRANSFER_READ_TAGS.out.tagged_bam
+                .join( ch_align_bam )
+                .map { it -> [ it[0], it[2], it[3], it[1] ]}
+                .set { ch_align_bam }
+            ch_software_versions = ch_software_versions.mix(TRANSFER_READ_TAGS.out.ch_versions.first().ifEmpty(null))
+        }
 
         /*
         * SUBWORKFLOW: View, then  sort, and index bam files
