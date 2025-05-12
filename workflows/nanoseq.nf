@@ -403,7 +403,7 @@ workflow NANOSEQ{
         ch_software_versions = ch_software_versions.mix(SAMTOOLS_VIEW_BAM.out.versions.first().ifEmpty(null))
 
         if (params.transfer_read_tags) {
-            TRANSFER_READ_TAGS( ch_align_bam.map { it -> [ it[0], it[3] ] }, ch_sample_bam )
+            TRANSFER_READ_TAGS( ch_align_bam.map { it -> [ it[0], it[3] ] }, ch_fasta, ch_sample_bam )
             TRANSFER_READ_TAGS.out.tagged_bam
                 .join( ch_align_bam )
                 .map { it -> [ it[0], it[2], it[3], it[1] ]}
