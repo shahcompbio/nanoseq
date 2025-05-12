@@ -24,7 +24,8 @@ process GATK_TRANSFER_READ_TAGS {
         -ALIGNED_BAM $aligned_bam \\
         -O ${meta.id}.tagged_aligned.bam \\
         -R $ref_fasta \\
-        --VALIDATION_STRINGENCY LENIENT
+        --VALIDATION_STRINGENCY LENIENT \\
+        --SORT_ORDER queryname
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
