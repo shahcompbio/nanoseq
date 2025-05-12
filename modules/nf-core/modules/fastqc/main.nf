@@ -4,8 +4,8 @@ process FASTQC {
 
     conda (params.enable_conda ? "bioconda::fastqc=0.11.9" : null)
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/fastqc:0.11.9--0' :
-        'quay.io/biocontainers/fastqc:0.11.9--0' }"
+        'https://depot.galaxyproject.org/singularity/fastqc:0.12.1--hdfd78af_0' :
+        'quay.io/biocontainers/fastqc:0.12.1--hdfd78af_0' }"
 
     input:
     tuple val(meta), path(reads)
@@ -25,7 +25,7 @@ process FASTQC {
     if (meta.single_end) {
         """
         [ ! -f  ${prefix}.fastq.gz ] && ln -s $reads ${prefix}.fastq.gz
-        fastqc $args --threads $task.cpus ${prefix}.fastq.gz
+        fastqc $args --mem ${task.memory.toMega()} --threads $task.cpus ${prefix}.fastq.gz
 
         cat <<-END_VERSIONS > versions.yml
         "${task.process}":
