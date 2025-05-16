@@ -1,8 +1,10 @@
 import click
-from pysam import AlignmentFile, AlignedSegment
+from pysam import AlignmentFile, AlignedSegment, AlignmentHeader
 from typing import Tuple
+from typing import List
+import random
 from itertools import groupby
-
+from argparse import ArgumentParser
 
 def iter_read_pairs(unaligned_bam: AlignmentFile, aligned_bam: AlignmentFile):
     """
@@ -54,6 +56,44 @@ def transfer_read_groups(source_read: AlignedSegment, target_read: AlignedSegmen
     target_read.set_tag("RG", source_read.get_tag("RG"))
     return target_read
 
+def generate_4_digit_str(seed=None):
+    if seed is not None:
+        random.seed(seed)
+    return f"{random.randint(0, 9999):04d}"
+
+def append_pg_suffix(header: dict):
+    """
+    Appends a suffix to the PG field in the header.
+    """
+    suffix = generate_4_digit_str(seed=1)
+    if "PG" not in header:
+        return header
+    pg_field = header["PG"]
+    for pg in pg_field:
+        if "ID" in pg and "ID" not in pg["ID"]:
+            pg["ID"] = f"{pg['ID']}.{suffix}"
+    header["PG"] = pg_field
+    return header
+
+def merge_headers(
+    source_bam: AlignmentFile, target_bam: AlignmentFile,
+    fields: Tuple[str] = ("RG", "PG")
+) -> AlignmentHeader:
+    """
+    Merges the headers of two BAM files.
+    """
+    source_header = source_bam.header.to_dict()
+    source_header = append_pg_suffix(source_header)
+    target_header = target_bam.header.to_dict()
+
+    # Add read groups from the source header to the merged header
+    for field in fields:
+        for element in source_header[field]:
+            if field not in target_header:
+                target_header[field] = []
+            target_header[field].append(element)
+    return AlignmentHeader.from_dict(target_header)
+
 
 @click.command()
 @click.argument("ubam")
@@ -82,12 +122,14 @@ def process_bams(ubam, aligned_bam, out_bam, tags):
     with (
         AlignmentFile(ubam, "rb", check_sq=False) as ubam_handle,
         AlignmentFile(aligned_bam, "rb") as bam_handle,
-        AlignmentFile(out_bam, "wb", template=bam_handle) as out_handle,
+        
     ):
-        for ubam_read, bam_read in iter_read_pairs(ubam_handle, bam_handle):
-            read_with_tags = transfer_read_tags(ubam_read, bam_read, tags=tags)
-            read_with_rg_with_tags = transfer_read_groups(ubam_read, read_with_tags)
-            out_handle.write(read_with_rg_with_tags)
+        out_header = merge_headers(ubam_handle, bam_handle)
+        with AlignmentFile(out_bam, "wb", header=out_header) as out_handle:
+            for ubam_read, bam_read in iter_read_pairs(ubam_handle, bam_handle):
+                read_with_tags = transfer_read_tags(ubam_read, bam_read, tags=tags)
+                read_with_rg_with_tags = transfer_read_groups(ubam_read, read_with_tags)
+                out_handle.write(read_with_rg_with_tags)
 
 
 if __name__ == "__main__":
