@@ -41,7 +41,7 @@ def transfer_read_tags(
     """
     Copies a tag from the source_read
     """
-    if not (target_read.is_supplementary() or target_read.is_secondary()):
+    if not (target_read.is_supplementary or target_read.is_secondary):
         for tag in tags:
             target_read.set_tag(tag, source_read.get_tag(tag))
     return target_read
@@ -66,7 +66,7 @@ def transfer_read_groups(source_read: AlignedSegment, target_read: AlignedSegmen
     help="Any number of string tags.",
 )
 # @click.option('--flags', default=(0, 16), type=int, multiple=True, help='Target flags to transfer tags to. Default: (0, 16)')
-def process_bams(ubam, aligned_bam, out_bam, transfer_tags):
+def process_bams(ubam, aligned_bam, out_bam, tags):
     """
     Process the input UBAM and ALIGNED_BAM files.
 
@@ -76,7 +76,7 @@ def process_bams(ubam, aligned_bam, out_bam, transfer_tags):
     click.echo(f"UBAM file: {ubam}")
     click.echo(f"Aligned BAM file: {aligned_bam}")
     click.echo(f"Output BAM file: {out_bam}")
-    click.echo(f"Tags to transfer: {transfer_tags}")
+    click.echo(f"Tags to transfer: {tags}")
     click.echo("Processing BAM files...")
 
     with (
@@ -85,7 +85,7 @@ def process_bams(ubam, aligned_bam, out_bam, transfer_tags):
         AlignmentFile(out_bam, "wb", template=bam_handle) as out_handle,
     ):
         for ubam_read, bam_read in iter_read_pairs(ubam_handle, bam_handle):
-            read_with_tags = transfer_read_tags(ubam_read, bam_read, tags=transfer_tags)
+            read_with_tags = transfer_read_tags(ubam_read, bam_read, tags=tags)
             read_with_rg_with_tags = transfer_read_groups(ubam_read, read_with_tags)
             out_handle.write(read_with_rg_with_tags)
 
