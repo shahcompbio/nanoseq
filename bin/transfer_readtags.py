@@ -1,4 +1,6 @@
-import click
+#!/usr/bin/env python
+
+import argparse
 from pysam import AlignmentFile, AlignedSegment, AlignmentHeader
 from typing import Tuple
 from typing import List
@@ -38,13 +40,15 @@ def iter_read_pairs(unaligned_bam: AlignmentFile, aligned_bam: AlignmentFile):
 
 
 def transfer_read_tags(
-    source_read: AlignedSegment, target_read: AlignedSegment, tags: Tuple[str]
+    source_read: AlignedSegment, target_read: AlignedSegment, tags: Tuple[str], primary_only_tags: Tuple[str]
 ):
     """
     Copies a tag from the source_read
     """
+    for tag in tags:
+        target_read.set_tag(tag, source_read.get_tag(tag))
     if not (target_read.is_supplementary or target_read.is_secondary):
-        for tag in tags:
+        for tag in primary_only_tags:
             target_read.set_tag(tag, source_read.get_tag(tag))
     return target_read
 
@@ -56,22 +60,17 @@ def transfer_read_groups(source_read: AlignedSegment, target_read: AlignedSegmen
     target_read.set_tag("RG", source_read.get_tag("RG"))
     return target_read
 
-def generate_4_digit_str(seed=None):
-    if seed is not None:
-        random.seed(seed)
-    return f"{random.randint(0, 9999):04d}"
-
-def append_pg_suffix(header: dict):
+def append_pg_suffix(header: dict, suffix: str = "ubam") -> dict:
     """
     Appends a suffix to the PG field in the header.
     """
-    suffix = generate_4_digit_str(seed=1)
     if "PG" not in header:
         return header
     pg_field = header["PG"]
-    for pg in pg_field:
-        if "ID" in pg and "ID" not in pg["ID"]:
-            pg["ID"] = f"{pg['ID']}.{suffix}"
+    for pg in header["PG"]:
+        pg["ID"] = f"{pg['ID']}.{suffix}"
+        if 'PP' in pg:
+            pg["PP"] = f"{pg['PP']}.{suffix}"
     header["PG"] = pg_field
     return header
 
@@ -92,45 +91,81 @@ def merge_headers(
             if field not in target_header:
                 target_header[field] = []
             target_header[field].append(element)
+
+    # Check for duplicate PG IDs
+    pg_ids = set()
+    for pg in target_header.get("PG", []):
+        if pg["ID"] in pg_ids:
+            raise ValueError(f"Duplicate PG ID found: {pg['ID']}")
+        pg_ids.add(pg["ID"])
+
     return AlignmentHeader.from_dict(target_header)
 
+default_tags = [
+    "qs", # :f – Mean Phred Q-score for the read.
+    "ts", # :i – Samples trimmed from the start of the raw signal (noise at the pore open).
+    "ns", # :i – Index of the last sample kept (so ns − ts ≈ raw signal length used).
+    "mx", # :i – Mux group (0-3) that the pore/channel was assigned to.
+    "ch", # :i – Physical channel number on the flowcell.
+    "rn", # :i – Read number (counter that increments within each channel).
+    "st", # :Z – Read start time in ISO-8601 UTC.
+    "du", # :f – Read duration in seconds.
+    "fn", # :Z – Source POD5/FAST5 file name.
+    "sm", # :f - Signal-scaling midpoint (convert ADC units → pA).
+    "sd", # :f - Signal-scaling dispersion (convert ADC units → pA).
+    "sv", # :Z – Signal-scaling version (convert ADC units → pA).
+    "dx", # :i – Duplex flag (1 = duplex, 0 = simple).
+]
 
-@click.command()
-@click.argument("ubam")
-@click.argument("aligned_bam")
-@click.argument("out_bam")
-@click.option(
-    "--tags",
-    default=("MM", "MN", "ML"),
-    multiple=True,
-    help="Any number of string tags.",
-)
-# @click.option('--flags', default=(0, 16), type=int, multiple=True, help='Target flags to transfer tags to. Default: (0, 16)')
-def process_bams(ubam, aligned_bam, out_bam, tags):
-    """
-    Process the input UBAM and ALIGNED_BAM files.
+default_primary_only_tags = [
+    "MM", # :Z – String that encodes every base modification in the read (e.g., 5-mC, 6-mA),
+          # giving the reference base, mod code and zero-based offsets along the read. 
+    "MN", # :i – Length of SEQ at the moment the MM/ML tags were written; if later clipping
+          # changes SEQ length, MM/ML are stale and MN will no longer match, acting as a sanity check. 
+    "ML", # :B:C – Byte array (0–255) of per-site probabilities that the corresponding
+          # modifications listed in MM are truly present, in the same order as they appear in MM. 
+]
 
-    UBAM: Path to the unmapped BAM file.
-    ALIGNED_BAM: Path to the aligned BAM file.
-    """
-    click.echo(f"UBAM file: {ubam}")
-    click.echo(f"Aligned BAM file: {aligned_bam}")
-    click.echo(f"Output BAM file: {out_bam}")
-    click.echo(f"Tags to transfer: {tags}")
-    click.echo("Processing BAM files...")
+def main():
+    parser = argparse.ArgumentParser(
+        description="Transfer selected tags and read group from unaligned BAM to aligned BAM."
+    )
+    parser.add_argument("ubam", help="Path to the unmapped BAM file.")
+    parser.add_argument("aligned_bam", help="Path to the aligned BAM file.")
+    parser.add_argument("out_bam", help="Path to the output BAM file.")
+    parser.add_argument(
+        "--tags",
+        nargs="+",
+        default=default_tags,
+        help=f"Tags to transfer from unaligned to aligned BAM only for primary alignment (default: {default_tags}).",
+    )
+    parser.add_argument(
+        "--primary_only_tags",
+        nargs="+",
+        default=default_primary_only_tags,
+        help=f"Tags to transfer from unaligned to aligned BAM only for primary alignment (default: {default_primary_only_tags}).",
+    )
+
+    args = parser.parse_args()
+
+    print(f"UBAM file: {args.ubam}")
+    print(f"Aligned BAM file: {args.aligned_bam}")
+    print(f"Output BAM file: {args.out_bam}")
+    print(f"Tags to transfer: {args.tags}")
+    print(f"Tags to transfer to primary alignment only: {args.primary_only_tags}")
+    print("Processing BAM files...")
 
     with (
-        AlignmentFile(ubam, "rb", check_sq=False) as ubam_handle,
-        AlignmentFile(aligned_bam, "rb") as bam_handle,
-        
+        AlignmentFile(args.ubam, "rb", check_sq=False, require_index=False) as ubam_handle,
+        AlignmentFile(args.aligned_bam, "rb", require_index=False) as bam_handle,
     ):
         out_header = merge_headers(ubam_handle, bam_handle)
-        with AlignmentFile(out_bam, "wb", header=out_header) as out_handle:
+        with AlignmentFile(args.out_bam, "wb", header=out_header) as out_handle:
             for ubam_read, bam_read in iter_read_pairs(ubam_handle, bam_handle):
-                read_with_tags = transfer_read_tags(ubam_read, bam_read, tags=tags)
+                read_with_tags = transfer_read_tags(ubam_read, bam_read, tags=args.tags, primary_only_tags=args.primary_only_tags)
                 read_with_rg_with_tags = transfer_read_groups(ubam_read, read_with_tags)
                 out_handle.write(read_with_rg_with_tags)
 
 
 if __name__ == "__main__":
-    process_bams()
+    main()
