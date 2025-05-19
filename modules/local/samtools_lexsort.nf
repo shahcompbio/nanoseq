@@ -1,6 +1,6 @@
 process SAMTOOLS_LEXSORT {
     tag "$meta.id"
-    label 'process_low'
+    label 'process_medium'
 
     container "quay.io/biocontainers/samtools:1.21--h96c455f_1"
 

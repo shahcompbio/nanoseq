@@ -1,6 +1,6 @@
 process PYSAM_TRANSFER_READ_TAGS {
     tag "$meta.id"
-    label 'process_low'
+    label 'process_medium'
 
     container "quay.io/biocontainers/pysam:0.23.0--py311hb456a96_0"
 
