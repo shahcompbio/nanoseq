@@ -1,4 +1,4 @@
-process SAMTOOLS_VIEW_BAM {
+process SAMTOOLS_VIEW_FASTQ {
     tag "$meta.id"
     label 'process_medium'
 
@@ -8,15 +8,15 @@ process SAMTOOLS_VIEW_BAM {
         'quay.io/biocontainers/samtools:1.15.1--h1170115_0' }"
 
     input:
-    tuple val(meta), path(sam)
+    tuple val(meta), path(bam)
 
     output:
-    tuple val(meta), path("*.bam") ,emit: bam
-    path "versions.yml"        , emit: versions
+    tuple val(meta), path("*.fastq.gz"), emit: fastq
+    path "versions.yml", emit: versions
 
     script:
     """
-    samtools view -b -h -O BAM -@ $task.cpus -o ${meta.id}.bam $sam
+    samtools fastq $bam | gzip > ${meta.id}.fastq.gz
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
@@ -24,3 +24,4 @@ process SAMTOOLS_VIEW_BAM {
     END_VERSIONS
     """
 }
+

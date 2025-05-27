@@ -127,7 +127,10 @@ include { QCAT                  } from '../modules/local/qcat'
 include { BAM_RENAME            } from '../modules/local/bam_rename'
 include { BAMBU                 } from '../modules/local/bambu'
 include { MULTIQC               } from '../modules/local/multiqc'
+include { SAMTOOLS_VIEW_BAM     } from '../modules/local/samtools_view_bam'
+include { SAMTOOLS_VIEW_FASTQ   } from '../modules/local/samtools_view_fastq'
 include { CHOPPER } from '../modules/local/chopper'
+
 /*
  * SUBWORKFLOW: Consisting of a mix of local and nf-core/modules
  */
@@ -147,6 +150,7 @@ include { QUANTIFY_STRINGTIE_FEATURECOUNTS } from '../subworkflows/local/quantif
 include { DIFFERENTIAL_DESEQ2_DEXSEQ       } from '../subworkflows/local/differential_deseq2_dexseq'
 include { RNA_MODIFICATION_XPORE_M6ANET    } from '../subworkflows/local/rna_modifications_xpore_m6anet'
 include { RNA_FUSIONS_JAFFAL               } from '../subworkflows/local/rna_fusions_jaffal'
+include { TRANSFER_READ_TAGS               } from '../subworkflows/local/transfer_read_tags'
 
 ////////////////////////////////////////////////////
 /* --    IMPORT NF-CORE MODULES/SUBWORKFLOWS   -- */
@@ -265,9 +269,23 @@ workflow NANOSEQ{
             ch_software_versions = ch_software_versions.mix(QCAT.out.versions.ifEmpty(null))
         } else {
             if (!params.skip_alignment) {
-                ch_sample
-                    .map { it -> if (it[6].toString().endsWith('.gz')) [ it[0], it[6], it[2], it[1], it[4], it[5] ] }
-                    .set { ch_fastq }
+                if (!params.realign) {
+                    ch_sample
+                        .map { it -> if (it[6].toString().endsWith('.gz')) [ it[0], it[6], it[2], it[1], it[4], it[5] ] }
+                        .set { ch_fastq }
+                } else {
+
+                    ch_sample
+                        .map { it -> if (it[6].toString().endsWith('.bam')) [ it[0], it[6] ] }
+                        .set { ch_sample_bam }
+                    SAMTOOLS_VIEW_FASTQ ( ch_sample_bam )
+                    ch_fastq = Channel.empty()
+                    SAMTOOLS_VIEW_FASTQ.out.fastq
+                        .join(ch_sample)
+                        .map { it -> [ it[0], it[1], it[3], it[2], it[5], it[6] ] }
+                        .set { ch_fastq }
+                    ch_software_versions = ch_software_versions.mix(SAMTOOLS_VIEW_FASTQ.out.versions.ifEmpty(null))
+                }
             } else {
                 ch_fastq = Channel.empty()
             }
@@ -377,10 +395,26 @@ workflow NANOSEQ{
             ch_software_versions = ch_software_versions.mix(ALIGN_GRAPHMAP2.out.graphmap2_version.first().ifEmpty(null))
         }
 
+        SAMTOOLS_VIEW_BAM ( ch_align_sam.map { it -> [ it[0], it[3] ] } )
+        SAMTOOLS_VIEW_BAM.out.bam
+            .join( ch_align_sam )
+            .map { it -> [ it[0], it[2], it[3], it[1] ]}
+            .set { ch_align_bam }
+        ch_software_versions = ch_software_versions.mix(SAMTOOLS_VIEW_BAM.out.versions.first().ifEmpty(null))
+
+        if (params.transfer_read_tags) {
+            TRANSFER_READ_TAGS( ch_align_bam.map { it -> [ it[0], it[3] ] }, ch_sample_bam )
+            TRANSFER_READ_TAGS.out.tagged_bam
+                .join( ch_align_bam )
+                .map { it -> [ it[0], it[2], it[3], it[1] ]}
+                .set { ch_align_bam }
+            ch_software_versions = ch_software_versions.mix(TRANSFER_READ_TAGS.out.ch_versions.first().ifEmpty(null))
+        }
+
         /*
         * SUBWORKFLOW: View, then  sort, and index bam files
         */
-        BAM_SORT_INDEX_SAMTOOLS ( ch_align_sam, params.call_variants, ch_fasta )
+        BAM_SORT_INDEX_SAMTOOLS ( ch_align_bam, params.call_variants, ch_fasta )
         ch_view_sortbam = BAM_SORT_INDEX_SAMTOOLS.out.sortbam
         ch_software_versions = ch_software_versions.mix(BAM_SORT_INDEX_SAMTOOLS.out.samtools_versions.first().ifEmpty(null))
         ch_samtools_multiqc  = BAM_SORT_INDEX_SAMTOOLS.out.sortbam_stats_multiqc.ifEmpty([])
