@@ -130,6 +130,7 @@ include { MULTIQC               } from '../modules/local/multiqc'
 include { SAMTOOLS_VIEW_BAM     } from '../modules/local/samtools_view_bam'
 include { SAMTOOLS_VIEW_FASTQ   } from '../modules/local/samtools_view_fastq'
 include { CHOPPER } from '../modules/local/chopper'
+include { CAT_LRFASTQ           } from '../modules/local/cat_fastq'
 
 /*
  * SUBWORKFLOW: Consisting of a mix of local and nf-core/modules
